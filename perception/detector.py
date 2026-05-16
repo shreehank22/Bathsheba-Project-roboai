@@ -1,4 +1,5 @@
 import cv2
+import mujoco
 import numpy as np
 
 
@@ -30,3 +31,33 @@ def segment_red(rgb_image):
     v = int(M['m01'] / M['m00'])
 
     return mask,(u,v),True
+
+def camera_intrinsics(model, cam_name, height, width):
+    cam_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, cam_name)
+    fovy=np.deg2rad(model.cam_fovy[cam_id])
+    fy = (height/2)/np.tan(fovy/2)
+    fx = fy
+    cx = width/2
+    cy = height/2
+    K = np.array([[fx, 0, cx],
+              [ 0,fy, cy],
+              [ 0, 0,  1]])
+    return K
+
+def pixel_to_world(u,v,depth,K,model,data,cam_name):
+
+    # back-project to camera coordinates
+    X_c= (u-K[0,2])*depth/K[0,0]
+    Y_c= -(v-K[1,2])*depth/K[1,1]
+    Z_c= -depth
+    p_cam = np.array([X_c,Y_c,Z_c])
+
+    # get camera pose in world frame
+    cam_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, cam_name)
+    R_cam = data.cam_xmat[cam_id].reshape(3,3)
+    t_cam = data.cam_xpos[cam_id]
+    
+    # Transform from camera to world coordinates
+    p_world = R_cam @ p_cam + t_cam
+    return p_world
+

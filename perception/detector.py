@@ -4,6 +4,8 @@ import numpy as np
 
 
 def segment_red(rgb_image):
+    print(type(rgb_image), type(rgb_image).__module__)
+    rgb_image = np.ascontiguousarray(rgb_image, dtype=np.uint8)
     hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
     mask1= cv2.inRange(hsv_image, (0, 100, 100), (10, 255, 255))
     mask2 = cv2.inRange(hsv_image, (170, 100, 100), (180, 255, 255))

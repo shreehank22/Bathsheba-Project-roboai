@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.expanduser('~/roboai_project'))
-from planning.JointTrajectory import JointTrajectory
+from planning.trajectory import JointTrajectory
 
 import numpy as np
 import mujoco

@@ -30,8 +30,8 @@ def geometric_jacobian(q):
         J[3:6,i] = z_prev
     return J
 
-def dls_ik(q0, p_des, R_des, k=1.0, lambda_max=0.1,
-           epsilon=0.05, max_iter=200, tol=1e-7):
+def dls_ik(q0, p_des, R_des, k=1.0, lambda_max=0.01,
+           epsilon=0.05, max_iter=400, tol=1e-6):
     q = q0.copy()
     for i in range(max_iter):
         T_curr = fk(q)

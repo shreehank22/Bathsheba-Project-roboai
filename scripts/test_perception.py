@@ -1,12 +1,12 @@
 import sys
-sys.path.insert(0, '/home/shreehan/roboai_project')
+sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')  # Adjust this path as needed
 
 import cv2
 import numpy as np
 import mujoco
 from perception.detector import segment_red, camera_intrinsics, pixel_to_world
 
-MODEL_PATH = '/home/shreehan/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
+MODEL_PATH = '/home/shreehan/Bathsheba-Project-roboai/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
 CAM_NAME = 'fixed_cam'
 H,W=480,640
 CUBE_HALF_SIZE = 0.05/2
@@ -54,5 +54,5 @@ if detected:
     cv2.circle(debug, centroid, 10, (0,255,0), -1)
     cv2.putText(debug, f'cube {centroid}', (u+10, v),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-    cv2.imwrite('/home/shreehan/roboai_project/assets/detection_debug.png', debug)
+    cv2.imwrite('/home/shreehan/Bathsheba-Project-roboai/assets/detection_debug.png', debug)
     print('Debug image saved')

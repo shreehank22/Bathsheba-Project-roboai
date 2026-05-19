@@ -48,8 +48,6 @@ K = camera_intrinsics(model, CAM_NAME, H, W)
 p_cube = pixel_to_world(u, v, depth, K, model, data, CAM_NAME)
 p_cube[2] -= CUBE_HALF_SIZE
 
-cube_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'cube')
-p_cube = data.xpos[cube_id].copy()
 print(f"Cube 3D position: {np.round(p_cube, 4)}")
 
 # --- IK ---
@@ -226,6 +224,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         elif phase == 'done':
             q_des = q_place
+            print("Task completed - exiting")
+            break
 
         data.ctrl[:N_ARM] = q_des
         data.ctrl[7] = GRIPPER

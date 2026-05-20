@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import mujoco
 import mujoco.viewer
-from planning.ik import dls_ik
 from planning.fk import fk
 from control.impedance_controller import Impedance_Controller
 

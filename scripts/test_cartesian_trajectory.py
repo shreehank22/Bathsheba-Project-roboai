@@ -1,3 +1,4 @@
+import os
 import sys
 sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
 import numpy as np
@@ -8,7 +9,7 @@ from planning.ik import dls_ik
 from planning.fk import fk
 import matplotlib.pyplot as plt
 
-MODEL_PATH = '/home/shreehan/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
+MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
 model = mujoco.MjModel.from_xml_path(MODEL_PATH)
 data = mujoco.MjData(model)
 mujoco.mj_forward(model, data)
@@ -20,7 +21,7 @@ R_des = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]], dtype=np.float64)
 waypoints = np.array([
     [0.4, -0.2, 0.6],
     [0.5,  0.0, 0.6],
-    [0.4,  0.2, 0.6],
+    [0.4,  0.5, 0.6],
     [0.3,  0.0, 0.6],
     [0.4, -0.2, 0.6],
 ])

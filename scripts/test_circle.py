@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.expanduser('~/roboai_project'))
+sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
 
 import numpy as np
 import mujoco

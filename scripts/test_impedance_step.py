@@ -1,3 +1,4 @@
+import os
 import sys
 sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
 import matplotlib.pyplot as plt
@@ -7,7 +8,7 @@ import mujoco.viewer
 from planning.fk import fk
 from control.impedance_controller import Impedance_Controller
 
-MODEL_PATH = '/home/shreehan/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
+MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
 model = mujoco.MjModel.from_xml_path(MODEL_PATH)
 data = mujoco.MjData(model)
 mujoco.mj_forward(model, data)

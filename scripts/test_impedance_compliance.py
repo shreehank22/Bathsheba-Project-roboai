@@ -1,16 +1,15 @@
+import os
 import sys
 sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
 import matplotlib.pyplot as plt
 import numpy as np
 import mujoco
-from planning.cartesian_trajectory import CartesianTrajectory
 import mujoco.viewer
-from planning.ik import dls_ik
 from planning.fk import fk
 from control.impedance_controller import Impedance_Controller
 import time
 
-MODEL_PATH = '/home/shreehan/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
+MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
 model = mujoco.MjModel.from_xml_path(MODEL_PATH)
 data = mujoco.MjData(model)
 mujoco.mj_forward(model, data)
@@ -18,7 +17,7 @@ N_ARM = 7
 SIM_HZ = 100
 
 
-DISTURBANCE_MAG = 150.0
+DISTURBANCE_MAG = 0.0
 T1, T2, T3, T4, T_END = 3.0, 7.0, 10.0, 14.0, 17.0
 
 def disturbance(t):
@@ -88,6 +87,10 @@ with mujoco.viewer.launch_passive(model,data) as viewer:
             T_curr = fk(data.qpos[:N_ARM])
             p_curr = T_curr[:3,3]
             err = np.linalg.norm(p_curr-p_des)*1000
+            if len(log_err) > 0 and log_err[-1] < 1.0 and err >= 1.0:
+                print(f">> Deflection START | q={np.round(data.qpos[:N_ARM],4)}")
+            if len(log_err) > 0 and log_err[-1] >= 1.0 and err < 1.0:
+                print(f">> Deflection END   | q={np.round(data.qpos[:N_ARM],4)}")
             log_t.append(t_global)
             log_err.append(err)
             log_p.append(p_curr.copy())

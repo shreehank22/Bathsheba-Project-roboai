@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.expanduser('~/roboai_project'))
+sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
 from planning.trajectory import JointTrajectory
 
 import numpy as np

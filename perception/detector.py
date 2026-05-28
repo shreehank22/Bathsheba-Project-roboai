@@ -62,3 +62,29 @@ def pixel_to_world(u,v,depth,K,model,data,cam_name):
     p_world = R_cam @ p_cam + t_cam
     return p_world
 
+def segment_blue(rgb_image):
+    rgb_image = np.ascontiguousarray(rgb_image,dtype=np.uint8)
+    hsv_image = cv2.cvtColor(rgb_image,cv2.COLOR_RGB2HSV)
+    mask = cv2.inRange(hsv_image, (110, 150, 50), (130, 255, 255))
+    
+    kernel = np.ones((5, 5), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+    # find contours 
+    contours,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    if len(contours) == 0:
+        return mask,None,False
+    largest = max(contours,key=cv2.contourArea)
+    if cv2.contourArea(largest) < 50:  
+        return mask,None,False
+
+    M = cv2.moments(largest)
+    if M['m00'] == 0:
+        return mask,None,False
+    u = int(M['m10'] / M['m00'])
+    v = int(M['m01'] / M['m00'])
+
+    return mask,(u,v),True
+    
+

@@ -4,7 +4,7 @@ from planning.ik import geometric_jacobian, log_SO3
 from planning.fk import fk
 
 
-class Impedance_Controller:
+class CS_Impedance_Controller:
     def __init__(self,Kp,Kr,Dp,Dr):
         self.Kp = Kp
         self.Kr = Kr

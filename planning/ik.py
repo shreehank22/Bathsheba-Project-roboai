@@ -11,6 +11,7 @@ def log_SO3(R):
         n = np.sqrt(np.maximum(0, np.diag(A)))
         if A[0,1] < 0: n[1] = -n[1]
         if A[0,2] < 0: n[2] = -n[2]
+        if A[1,2] < 0: n[2] = -n[2]
         return np.pi * n
     else:
         skew = (theta / (2*np.sin(theta))) * (R - R.T)

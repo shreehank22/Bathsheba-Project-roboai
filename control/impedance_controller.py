@@ -23,7 +23,8 @@ class Impedance_Controller:
         R = T[:3,:3]
         J = geometric_jacobian(q)
         M_inv = np.linalg.inv(M)
-        lambda_m = np.linalg.inv(J@M_inv@J.T)
+        alpha = 1e-4
+        lambda_m = np.linalg.inv(J @ M_inv @ J.T + alpha * np.eye(6))
         v = J@dq
         e_p = p_des - p
         e_r = log_SO3(R_des@R.T)

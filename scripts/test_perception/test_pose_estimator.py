@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 import numpy as np
 import mujoco
@@ -10,7 +10,8 @@ from perception.detector import segment_red, camera_intrinsics, pixel_to_world
 from perception.pose_estimator import estimate_cube_pose, cube_keypoints, detect_corners, project_keypoints
 
 # ── Config ───────────────────────────────────────────────────────────────────
-MODEL_PATH = '/home/shreehan/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
+MENAGERIE_PATH = os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco_menagerie'))
+MODEL_PATH = os.path.join(MENAGERIE_PATH, 'franka_emika_panda', 'scene_pick.xml')
 CAM_NAME   = 'fixed_cam'
 H, W       = 480, 640
 HALF_SIZE  = 0.025
@@ -75,7 +76,7 @@ if found:
         cv2.circle(debug, tuple(pt.astype(int)), 5, (0, 255, 0), -1)  # green = detected
 for pt in projected:
     cv2.circle(debug, tuple(pt.astype(int)), 5, (0, 0, 255), -1)      # red = projected
-cv2.imwrite('/home/shreehan/Bathsheba-Project-roboai/assets/corner_debug.png', debug)
+cv2.imwrite(os.path.join(PROJECT_ROOT, 'assets', 'corner_debug.png'), debug)
 print("Corner debug image saved.")
 
 # ── 6-DoF pose estimation ────────────────────────────────────────────────────
@@ -133,11 +134,11 @@ t_gt_ocv = R_conv @ t_gt_cam
 print(f"t_gt in MuJoCo cam frame : {np.round(t_gt_cam, 4)}")
 print(f"t_gt in OpenCV cam frame : {np.round(t_gt_ocv, 4)}")
 debug = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-cv2.imwrite('/home/shreehan/Bathsheba-Project-roboai/assets/pose_debug.png', debug)
+cv2.imwrite(os.path.join(PROJECT_ROOT, 'assets', 'pose_debug.png'), debug)
 print("Pose debug image saved.")
 # ── Display images ────────────────────────────────────────────────────────────
 cv2.imshow('RGB', cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-cv2.imshow('Corner Debug', cv2.imread('/home/shreehan/Bathsheba-Project-roboai/assets/corner_debug.png'))
-cv2.imshow('Pose Debug', cv2.imread('/home/shreehan/Bathsheba-Project-roboai/assets/pose_debug.png'))
+cv2.imshow('Corner Debug', cv2.imread(os.path.join(PROJECT_ROOT, 'assets', 'corner_debug.png')))
+cv2.imshow('Pose Debug', cv2.imread(os.path.join(PROJECT_ROOT, 'assets', 'pose_debug.png')))
 cv2.waitKey(0)
 cv2.destroyAllWindows()

@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 import numpy as np
 import mujoco
 import mujoco.viewer

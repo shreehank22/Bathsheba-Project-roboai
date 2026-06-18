@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, '/home/shreehan/Bathsheba-Project-roboai')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import threading
 import cv2
 import numpy as np
@@ -11,7 +11,8 @@ from planning.trajectory import JointTrajectory
 from planning.ik import dls_ik
 from planning.fk import fk
 
-MODEL_PATH = '/home/shreehan/mujoco_menagerie/franka_emika_panda/scene_pick.xml'
+MENAGERIE_PATH = os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco_menagerie'))
+MODEL_PATH = os.path.join(MENAGERIE_PATH, 'franka_emika_panda', 'scene_pick.xml')
 CAM_NAME = 'fixed_cam'
 H,W = 480, 640
 CUBE_HALF_SIZE = 0.05/2

@@ -6,7 +6,7 @@ import mujoco
 import mujoco.viewer
 from planning.fk import fk
 import matplotlib.pyplot as plt
-from control.CS_impedance_controller import Impedance_Controller
+from control.CS_impedance_controller import CS_Impedance_Controller
 
 MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
 model = mujoco.MjModel.from_xml_path(MODEL_PATH)
@@ -42,7 +42,7 @@ Dp = np.diag([D,D,D])
 Kr = np.diag([K,K,K])
 Dr = np.diag([D,D,D])
 
-CONTROLLER = Impedance_Controller(Kp,Kr,Dp,Dr)
+CONTROLLER = CS_Impedance_Controller(Kp,Kr,Dp,Dr)
 
 # reset and initialize
 

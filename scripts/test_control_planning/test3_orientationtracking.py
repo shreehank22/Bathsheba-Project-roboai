@@ -6,7 +6,7 @@ import mujoco
 import mujoco.viewer
 from planning.fk import fk
 import matplotlib.pyplot as plt
-from control.CS_impedance_controller import Impedance_Controller
+from control.CS_impedance_controller import CS_Impedance_Controller
 from scipy.spatial.transform import Rotation
 # Load model and data
 MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
@@ -46,7 +46,7 @@ Kr = np.diag([K]*3)
 Dp = np.diag([D]*3)
 Dr = np.diag([D]*3)
 
-CONTROLLER = Impedance_Controller(Kp,Kr,Dp,Dr)
+CONTROLLER = CS_Impedance_Controller(Kp,Kr,Dp,Dr)
 
 # storing results
 results = {}

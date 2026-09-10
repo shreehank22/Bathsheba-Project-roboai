@@ -5,12 +5,8 @@ Custom Kinematic stack for 7-DOF manipulators
 2) Verified custom IK solvers
 3) Implemented Impedance control architectures for compliant manipulation
 
+Ongoing work on perception and vision stack. Contributions are welcome!
+
 Dependencies
-
-- MuJoCo >= 3.0
-- NumPy
-- SciPy
-- OpenCV
-- Matplotlib
-
+pip install -r requirements.txt
 

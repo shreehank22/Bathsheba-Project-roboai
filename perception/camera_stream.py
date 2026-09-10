@@ -10,8 +10,10 @@ def _display_loop(stop_event):
     while not stop_event.is_set():
         try:
             fixed_bgr, wrist_bgr = _frame_queue.get(timeout=0.1)
-            cv2.imshow('Fixed Camera', fixed_bgr)
-            cv2.imshow('Wrist Camera', wrist_bgr)
+            if fixed_bgr is not None:
+                cv2.imshow('Fixed Camera', fixed_bgr)
+            if wrist_bgr is not None:
+                cv2.imshow('Wrist Camera', wrist_bgr)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 stop_event.set()
                 break
@@ -23,9 +25,8 @@ def start_stream(stop_event):
     t.start()
 
 def push_frames(fixed_img, wrist_img):
-    import cv2
-    fixed_bgr = cv2.cvtColor(fixed_img, cv2.COLOR_RGB2BGR)
-    wrist_bgr = cv2.cvtColor(wrist_img, cv2.COLOR_RGB2BGR)
+    fixed_bgr = cv2.cvtColor(fixed_img, cv2.COLOR_RGB2BGR) if fixed_img is not None else None
+    wrist_bgr = cv2.cvtColor(wrist_img, cv2.COLOR_RGB2BGR) if wrist_img is not None else None
     if not _frame_queue.full():
         _frame_queue.put((fixed_bgr, wrist_bgr))
 

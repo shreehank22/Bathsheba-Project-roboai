@@ -21,6 +21,7 @@ PREGRASP_OFFSET = 0.2
 FINGER_LENGTH = 0.11
 OBSERVE_HEIGHT = 0.25
 HOLD_TIME = 0.5
+ENABLE_FIXED_CAM = False
 
 R_des_default = np.array([[1,0,0],[0,-1,0],[0,0,-1]], dtype=np.float64)
 q_home = np.array([0, -np.pi/4, 0, -3*np.pi/4, 0, np.pi/2, np.pi/4], dtype=np.float64)
@@ -254,16 +255,24 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         elif phase == 'done':
             q_des = q_place
             print("Task completed — exiting")
+            stop_stream(stop_event)
+            renderer_fixed.close()
+            renderer_wrist.close()
+            renderer_depth_wrist.close()
+            renderer_rgb.close()
+            renderer_depth.close()
             break
  
         data.ctrl[:N_ARM] = q_des
         data.ctrl[7] = GRIPPER
         mujoco.mj_step(model, data)
         viewer.sync()
- 
         if step % 10 == 0:
-            renderer_fixed.update_scene(data, camera=CAM_NAME)
-            fixed_img = renderer_fixed.render()
+            if ENABLE_FIXED_CAM:
+                renderer_fixed.update_scene(data, camera=CAM_NAME)
+                fixed_img = renderer_fixed.render()
+            else:
+                fixed_img = None
             renderer_wrist.update_scene(data, camera='wrist_cam')
             wrist_img = renderer_wrist.render()
             push_frames(fixed_img, wrist_img)
@@ -275,4 +284,3 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
  
         step += 1
  
-stop_stream(stop_event)

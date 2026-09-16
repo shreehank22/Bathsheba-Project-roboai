@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 import numpy as np
@@ -14,6 +15,7 @@ MENAGERIE_PATH = os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco
 MODEL_PATH = os.path.join(MENAGERIE_PATH, 'franka_emika_panda', 'scene_pick.xml')
 CAM_NAME   = 'fixed_cam'
 H, W       = 480, 640
+PROJECT_ROOT = os.environ.get('PROJECT_ROOT', os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 HALF_SIZE  = 0.025
 
 # ── Setup ────────────────────────────────────────────────────────────────────

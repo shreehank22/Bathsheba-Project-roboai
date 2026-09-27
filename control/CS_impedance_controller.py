@@ -15,7 +15,7 @@ class CS_Impedance_Controller:
             v_des = np.zeros(6)
         nv = model.nv
         M_full = np.zeros((nv, nv))
-        mujoco.mj_fullM(model, M_full, data.qM)
+        mujoco.mj_fullM(model, data, M_full)
         n=len(q)
         M = M_full[:n, :n]
         T = fk(q)

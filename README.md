@@ -129,8 +129,8 @@ All values below are read off the plots in [assets/](assets/) and are approximat
 
 **CS vs JS comparison** (`test6_cs_vs_js.png`): a 30 N Y-axis force is applied from t = 3 s to t = 5 s.
 - CS impedance gives a bounded, predictable deflection of about 36 mm. The end effector returns fully to the setpoint after release.
-- JS impedance has no Cartesian-space guarantee. The end-effector Y position swings from roughly +470 mm to −630 mm. The arm also fails to recover and ends at about 165 mm from the setpoint, with a residual joint error of about 6.5 rad.
-- In this setup, Cartesian impedance is the better choice for compliant interaction with external forces.
+- The JS curve in this plot (end-effector Y swinging from roughly +470 mm to −630 mm, about 165 mm from the setpoint and about 6.5 rad joint error at the end) is **under review**. The script that produced it is not in this repository. A headless rerun of the JS controller with K = 500, ζ = 1 and the same 30 N load gave a peak joint error of about 0.02 rad and full recovery, which also agrees with the 60 N disturbance test above. The JS result in this plot is therefore not reproducible from the committed code and should not be read as a general property of joint-space impedance control.
+- Until the comparison is rerun with a committed script, no conclusion is drawn here about which controller is better for compliant interaction.
 
 ![CS vs JS](assets/test6_cs_vs_js.png)
 

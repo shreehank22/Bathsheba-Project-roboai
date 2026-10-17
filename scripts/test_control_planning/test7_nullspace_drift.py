@@ -40,7 +40,14 @@ Kr = np.diag([100.0]*3)
 Dp = np.diag([2*np.sqrt(1000.0)]*3)
 Dr = np.diag([2*np.sqrt(100.0)]*3)
 
-CS_CONTROLLER = CS_Impedance_Controller(Kp,Kr,Dp,Dr)
+
+# gains for nullspace control
+Kn = np.diag([20.0]*N_ARM)
+Dn = np.diag([2*np.sqrt(20.0)]*N_ARM)
+
+q_null = q_home
+
+CS_CONTROLLER = CS_Impedance_Controller(Kp,Kr,Dp,Dr,Kn,Dn,q_null=q_null)
 
 mujoco.mj_resetData(model, data)
 data.qpos[:N_ARM] = q_home
@@ -127,5 +134,5 @@ for ax in axes:
     ax.legend(loc="upper right", fontsize=8, ncol=2)
 
 plt.tight_layout()
-plt.savefig(os.path.join(PROJECT_ROOT, "assets", "test7_nullspace_drift.png"), dpi=150)
+plt.savefig(os.path.join(PROJECT_ROOT, "assets", "test7_nullspace_drift_after.png"), dpi=150)
 plt.show()

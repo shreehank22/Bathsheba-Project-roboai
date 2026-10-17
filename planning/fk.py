@@ -3,15 +3,7 @@ import sys, os
 sys.path.insert(0, os.path.expanduser('~/roboai_project'))
 from utils.transform import dh_transform
 
-DH_PARAMS = [
-    [0,0.333,-np.pi/2],
-    [0,0,np.pi/2],
-    [0.0825,0.316,np.pi/2],
-    [-0.0825,0,-np.pi/2],
-    [0,0.384,np.pi/2],
-    [0.088,0,np.pi/2],
-    [0,0.107,0 ],
-]
+DH_PARAMS = [[0,0.333,-np.pi/2],[0,0,np.pi/2],[0.0825,0.316,np.pi/2],[-0.0825,0,-np.pi/2],[0,0.384,np.pi/2],[0.088,0,np.pi/2],[0,0.107,0 ],]
 
 R_EE_OFFSET = np.array([[np.cos(-np.pi/4),-np.sin(-np.pi/4),0,0],[np.sin(-np.pi/4),np.cos(-np.pi/4),0,0],[0,0,1,0],[0,0,0,1]])
 

@@ -41,16 +41,17 @@ Bathsheba-Project-roboai/
 │   └── trajectory.py
 ├── scripts/
 │   ├── run.py
-│   └── test_control_planning/
-│       ├── test_cartesian_trajectory.py
-│       ├── test_circle.py
-│       ├── test_trajectory.py
-│       ├── test1_setpointtracking.py
-│       ├── test2_dampingandsweep.py
-│       ├── test3_orientationtracking.py
-│       └── test4_JSImpedance.py
-├── test_perception/
-│   └── test_pose_estimator.py
+│   ├── test_control_planning/
+│   │   ├── test_cartesian_trajectory.py
+│   │   ├── test_circle.py
+│   │   ├── test_trajectory.py
+│   │   ├── test1_setpointtracking.py
+│   │   ├── test2_dampingandsweep.py
+│   │   ├── test3_orientationtracking.py
+│   │   ├── test4_JSImpedance.py
+│   │   └── test7_nullspace_drift.py
+│   └── test_perception/
+│       └── test_pose_estimator.py
 └── utils/
     ├── __init__.py
     └── transform.py
@@ -60,6 +61,8 @@ Bathsheba-Project-roboai/
 
 ### control/
 Contains robot control logic, including compliant impedance controllers and grasp checks.
+
+`CS_Impedance_Controller` optionally adds null-space posture regulation for the 7-DOF arm. Pass `Kn`, `Dn` (7×7 gain matrices) and `q_null` (7-vector target posture) to the constructor; omitting them gives the original task-space-only behaviour. If `q_null` is given without `Kn` and `Dn`, it raises a `ValueError`. The posture torque is a joint-space PD law, `tau_null = Kn (q_null - q) - Dn dq`, projected as `tau += N^T tau_null`. The projector is `N = I - J_bar J`, with `J_bar = M^-1 J^T Λ` (the dynamically consistent generalised inverse) and `Λ` the damped task-space inertia already used for the impedance wrench. The projection keeps the posture torque from disturbing the end-effector impedance behaviour.
 
 ### envs/
 Defines simulation and task environments used for robot interaction experiments.
@@ -89,7 +92,7 @@ pip install -r requirements.txt
 
 ## Results
 
-All values below are read off the plots in [assets/](assets/) and are approximate. Experiments were run in MuJoCo on the Franka Emika Panda.
+Values below are read off the plots in [assets/](assets/) and are approximate, except the null-space final values, which are the exact numbers printed by the script. Experiments were run in MuJoCo on the Franka Emika Panda.
 
 ### Cartesian-space (CS) impedance control
 
@@ -120,6 +123,29 @@ All values below are read off the plots in [assets/](assets/) and are approximat
 - Position error shows a transient of about 22–24 mm, peaking at about 0.07 s, and settles within 1 mm in about 0.4–0.6 s.
 
 ![Orientation tracking](assets/test5_orientation_tracking.png)
+
+### Null-space posture control
+
+**Elbow push** (`test7_nullspace_drift.py`): a 20 N Y-axis force on link4 from t = 1.0 s to t = 1.5 s while the end effector holds its home pose (Kp = 1000, Kr = 100, ζ = 1). With posture control the gains are Kn = 20, Dn = 2√20 per joint and `q_null` is the home configuration. Drift is measured relative to the joint angles just before the push.
+
+| | Without posture control | With posture control |
+|---|---|---|
+| Peak end-effector position error | ~0.5 mm | ~0.55 mm |
+| Peak orientation error | ~93 mrad | ~47 mrad |
+| Peak joint drift | q1 ≈ −1.06 rad, q3 ≈ +0.58 rad, q5 ≈ +0.51 rad | q1 ≈ −0.075 rad, q3 ≈ +0.06 rad |
+| Final (t = 4 s) ‖e_p‖ | 0.0002 mm | 0.0001 mm |
+| Final (t = 4 s) ‖e_r‖ | 1.12e-4 rad | 5.9e-5 rad |
+| Final (t = 4 s) joint drift | q1 = −1.060 rad (stays at the plateau) | max 3.1e-4 rad |
+
+- Without posture control the push shoves the arm into a different elbow configuration. The end effector recovers, but the joints stay where the push left them, up to about 1 rad.
+- With posture control the joints settle back to the home posture within about 2 s of release, and the end-effector error is still driven to zero.
+- Steady-state task-space accuracy is unchanged. During posture recovery (1.6–3.0 s) the joints return to `q_null` with no measurable end-effector disturbance, consistent with the dynamically consistent projection. Peak end-effector position error is comparable (~0.5 vs ~0.56 mm), and peak orientation error roughly halves.
+- The gains are fixed values, not tuned. The posture stiffness trades speed of return against how strongly the posture torque competes with the push.
+- The "without" run uses the same script with the controller built without `Kn`, `Dn` and `q_null`. Its plot is `assets/test7_nullspace_drift.png`.
+
+![Null-space drift, without posture control](assets/test7_nullspace_drift.png)
+
+![Null-space drift, with posture control](assets/test7_nullspace_drift_after.png)
 
 ### Joint-space (JS) impedance control
 

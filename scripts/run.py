@@ -11,9 +11,8 @@ from perception.camera_stream import push_frames, start_stream, stop_stream
 from planning.trajectory import JointTrajectory
 from planning.ik import dls_ik
 from planning.fk import fk
+from envs.pick_scene import load_pick_scene
 
-MENAGERIE_PATH = os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco_menagerie'))
-MODEL_PATH = os.path.join(MENAGERIE_PATH, 'franka_emika_panda', 'scene_pick.xml')
 CAM_NAME = 'fixed_cam'
 H,W = 480, 640
 CUBE_HALF_SIZE = 0.05/2
@@ -21,7 +20,7 @@ PREGRASP_OFFSET = 0.2
 FINGER_LENGTH = 0.11
 OBSERVE_HEIGHT = 0.25
 HOLD_TIME = 0.5
-ENABLE_FIXED_CAM = False
+ENABLE_FIXED_CAM = True
 
 R_des_default = np.array([[1,0,0],[0,-1,0],[0,0,-1]], dtype=np.float64)
 q_home = np.array([0, -np.pi/4, 0, -3*np.pi/4, 0, np.pi/2, np.pi/4], dtype=np.float64)
@@ -43,7 +42,7 @@ def make_R_des(yaw):
     R_des = np.array([[c, -s, 0],[s, c, 0],[0, 0, 1]], dtype=np.float64) @ R_des_default
     return R_des
 
-model = mujoco.MjModel.from_xml_path(MODEL_PATH)
+model = load_pick_scene()
 data = mujoco.MjData(model)  
 mujoco.mj_forward(model, data)
 N_ARM = 7

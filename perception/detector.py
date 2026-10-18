@@ -62,11 +62,32 @@ def pixel_to_world(u,v,depth,K,model,data,cam_name):
     p_world = R_cam @ p_cam + t_cam
     return p_world
 
-def segment_blue(rgb_image):
-    rgb_image = np.ascontiguousarray(rgb_image,dtype=np.uint8)
-    hsv_image = cv2.cvtColor(rgb_image,cv2.COLOR_RGB2HSV)
-    mask = cv2.inRange(hsv_image, (110, 150, 50), (130, 255, 255))
-    
+def pixel_to_plane(u,v,K,model,data,cam_name,z_plane):
+    cam_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, cam_name)
+
+    # performing normalization and transformation 
+    ray_cam = np.array([(u-K[0,2])/K[0,0], -(v-K[1,2])/K[1,1], -1.0])
+    R_cam = data.cam_xmat[cam_id].reshape(3,3)
+    d = R_cam @ ray_cam
+    t_cam = data.cam_xpos[cam_id]
+
+    # ray parallel to the plane
+    if abs(d[2]) < 1e-9:
+        return None
+    s = (z_plane - t_cam[2]) / d[2]
+
+    # intersection behind the camera
+    if s <= 0:
+        return None
+
+    return t_cam + s*d
+
+def segment_green(rgb_image):
+    rgb_image = np.ascontiguousarray(rgb_image, dtype=np.uint8)
+    hsv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+    mask = cv2.inRange(hsv_image, (40, 100, 100), (80, 255, 255))
+
+    # binary mask of the green color
     kernel = np.ones((5, 5), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -76,15 +97,15 @@ def segment_blue(rgb_image):
     if len(contours) == 0:
         return mask,None,False
     largest = max(contours,key=cv2.contourArea)
-    if cv2.contourArea(largest) < 50:  
+    area = cv2.contourArea(largest)
+    if area < 300 or area > 700:  
         return mask,None,False
 
+    # centroid
     M = cv2.moments(largest)
     if M['m00'] == 0:
         return mask,None,False
-    u = int(M['m10'] / M['m00'])
-    v = int(M['m01'] / M['m00'])
+    u = M['m10'] / M['m00']
+    v = M['m01'] / M['m00']
 
     return mask,(u,v),True
-    
-

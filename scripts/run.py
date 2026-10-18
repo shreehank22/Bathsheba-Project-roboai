@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import mujoco
 import mujoco.viewer
-from perception.detector import segment_red, camera_intrinsics, pixel_to_world
+from perception.detector import segment_red, segment_green, camera_intrinsics, pixel_to_world, pixel_to_plane
 from perception.camera_stream import push_frames, start_stream, stop_stream
 from planning.trajectory import JointTrajectory
 from planning.ik import dls_ik
@@ -21,6 +21,9 @@ FINGER_LENGTH = 0.11
 OBSERVE_HEIGHT = 0.25
 HOLD_TIME = 0.5
 ENABLE_FIXED_CAM = True
+PATCH_Z = 0.4015
+PLACE_CLEARANCE = 0.003
+PLACE_ABOVE_Z = 0.63  # top-down IK at the patch fails above ~0.66 (lift height 0.735 is out of reach)
 
 R_des_default = np.array([[1,0,0],[0,-1,0],[0,0,-1]], dtype=np.float64)
 q_home = np.array([0, -np.pi/4, 0, -3*np.pi/4, 0, np.pi/2, np.pi/4], dtype=np.float64)
@@ -59,6 +62,7 @@ renderer_depth.enable_depth_rendering()
 renderer_depth.update_scene(data, camera=CAM_NAME)
 depth_image = renderer_depth.render()
 
+# detection of the cube in the initial frame
 mask,centroid,detected = segment_red(rgb_image)
 print(f"Initial detection: Detected={detected}, Centroid={centroid}")
 if not detected:
@@ -66,7 +70,28 @@ if not detected:
 u,v = centroid
 depth = depth_image[v,u]
 
+# detection of the green patch in the initial frame
+mask_green,centroid_green,detected_green = segment_green(rgb_image)
+if not detected_green:
+    print("No green patch detected in the initial frame. Exiting.");exit(1)
+
+print(f"Green patch detection: Detected={detected_green}, Centroid={centroid_green}")
 K = camera_intrinsics(model,CAM_NAME,height=H,width=W)
+
+p_green = pixel_to_plane(centroid_green[0], centroid_green[1], K, model, data, CAM_NAME, PATCH_Z)
+if p_green is None:
+    print("Failed to project green patch to the plane. Exiting.");exit(1)
+print(f"Green patch position: {p_green}")
+
+# ground-truth check against the place_patch geom (valid since mj_forward has run)
+patch_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, 'place_patch')
+p_green_true = data.geom_xpos[patch_id]
+print(f"Green patch true position: {p_green_true}")
+print(f"Green patch x-y error: {np.linalg.norm(p_green[:2] - p_green_true[:2])*1000:.2f} mm")
+
+
+
+
 p_cube = pixel_to_world(u,v,depth,K,model,data,CAM_NAME)
 p_cube[2] -= CUBE_HALF_SIZE
 print(f"Initial cube position: {p_cube}")
@@ -98,6 +123,9 @@ if not result_observe['converged']:
     print("IK failed to find an observe solution. Exiting.");exit()
 q_observe = result_observe['q']
 
+cube_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'cube')
+cube_qpos_adr = model.jnt_qposadr[model.body_jntadr[cube_body_id]]
+
 q_start = data.qpos[:N_ARM].copy()
 traj = JointTrajectory(q_start, q_pregrasp, 3.0)
 
@@ -113,8 +141,11 @@ traj_descend = None
 traj_observe = None
 traj_lift = None
 traj_place = None
+traj_descend_place = None
+traj_retreat = None
 q_lift = None
-q_place = None
+q_place_above = None
+q_place_down = None
 t_hold_start = None
 t_start = 0.0
 phase = 'pregrasp'
@@ -228,31 +259,64 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             q_des = q_lift
             GRIPPER = 0.0
             if traj_place is None:
-                p_place_above = np.array([0.3, 0.2, 0.625])
-                result_place = dls_ik(q_lift, p_place_above, R_des_default)
-                q_place = result_place['q']
-                traj_place = JointTrajectory(q_lift, q_place, T=2.0)
+                # pre-place: patch x-y above the patch, grasp orientation so the cube isn't rotated in hand
+                p_place_above = p_green.copy()
+                p_place_above[2] = PLACE_ABOVE_Z
+                result_place = dls_ik(q_lift, p_place_above, R_des)
+                if not result_place['converged']:
+                    print("Warning: pre-place IK did not converge")
+                q_place_above = result_place['q']
+                traj_place = JointTrajectory(q_lift, q_place_above, T=2.0)
                 phase = 'move_to_place'
                 t_start = t_global
                 print("Moving to place position...")
- 
+
         elif phase == 'move_to_place':
             q_des, _, _ = traj_place.evaluate(t_global - t_start)
             GRIPPER = 0.0
             if traj_place.is_done(t_global - t_start):
+                # place: cube bottom just above the patch surface
+                p_place_down = p_place_above.copy()
+                p_place_down[2] = PATCH_Z + CUBE_HALF_SIZE + FINGER_LENGTH + PLACE_CLEARANCE
+                result_place_down = dls_ik(q_place_above, p_place_down, R_des)
+                if not result_place_down['converged']:
+                    print("Warning: place IK did not converge")
+                q_place_down = result_place_down['q']
+                traj_descend_place = JointTrajectory(q_place_above, q_place_down, T=2.0)
+                phase = 'descend_place'
+                t_start = t_global
+                print("Above place position — descending...")
+
+        elif phase == 'descend_place':
+            q_des, _, _ = traj_descend_place.evaluate(t_global - t_start)
+            GRIPPER = 0.0
+            if traj_descend_place.is_done(t_global - t_start):
                 phase  = 'place'
                 t_hold_start = t_global
                 print("Place position reached!")
- 
+
         elif phase == 'place':
-            q_des = q_place
+            q_des = q_place_down
             GRIPPER = 255.0
             if t_global - t_hold_start >= 1.0:
                 print("Cube released!")
+                traj_retreat = JointTrajectory(q_place_down, q_place_above, T=2.0)
+                phase = 'retreat'
+                t_start = t_global
+
+        elif phase == 'retreat':
+            q_des, _, _ = traj_retreat.evaluate(t_global - t_start)
+            GRIPPER = 255.0
+            if traj_retreat.is_done(t_global - t_start):
+                print("Retreat complete!")
                 phase = 'done'
- 
+
         elif phase == 'done':
-            q_des = q_place
+            q_des = q_place_above
+            p_cube_final = data.qpos[cube_qpos_adr:cube_qpos_adr+3]
+            print(f"Cube final position: {np.round(p_cube_final, 4)}")
+            print(f"Patch true center: {np.round(p_green_true, 4)}")
+            print(f"Place x-y error: {np.linalg.norm(p_cube_final[:2] - p_green_true[:2])*1000:.2f} mm")
             print("Task completed — exiting")
             stop_stream(stop_event)
             renderer_fixed.close()

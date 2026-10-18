@@ -37,9 +37,9 @@ mask, centroid, detected = segment_red(rgb)
 if not detected:
     print("Cube not detected — exiting"); exit()
 
-u, v     = centroid
-d        = depth[v, u]
-K        = camera_intrinsics(model, CAM_NAME, H, W)
+u, v = centroid
+d = depth[v, u]
+K = camera_intrinsics(model, CAM_NAME, H, W)
 p_coarse = pixel_to_world(u, v, d, K, model, data, CAM_NAME)
 p_coarse[2] -= HALF_SIZE
 

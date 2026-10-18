@@ -1,21 +1,33 @@
 import numpy as np
 from planning.fk import fk, fk_all_frames
 
+def skew(v):
+    return np.array([[0, -v[2], v[1]],[v[2], 0, -v[0]],[-v[1], v[0], 0]], dtype=np.float64)
+
 def log_SO3(R):
     trace_val = (np.trace(R) - 1) / 2
     theta = np.arccos(np.clip(trace_val, -1, 1))
     if abs(theta) < 1e-7:
-        skew = 0.5 * (R - R.T)
+        S = 0.5 * (R - R.T)
     elif abs(theta - np.pi) < 1e-4:
-        A = (R + np.eye(3)) / 2
-        n = np.sqrt(np.maximum(0, np.diag(A)))
-        if A[0,1] < 0: n[1] = -n[1]
-        if A[0,2] < 0: n[2] = -n[2]
-        if A[1,2] < 0: n[2] = -n[2]
-        return np.pi * n
+        A = (0.5*(R + R.T) - np.cos(theta)*np.eye(3)) / (1 - np.cos(theta))
+        k = np.argmax(np.diag(A))
+        n = A[:, k] / np.linalg.norm(A[:, k])
+        v = np.array([R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0]-R[0,1]])
+        if np.dot(n, v) < 0: n = -n
+        return theta * n
     else:
-        skew = (theta / (2*np.sin(theta))) * (R - R.T)
-    return np.array([skew[2,1], skew[0,2], skew[1,0]])
+        S = (theta / (2*np.sin(theta))) * (R - R.T)
+    return np.array([S[2,1], S[0,2], S[1,0]])
+
+def exponential_map_SO3(omega):
+    theta = np.linalg.norm(omega)
+    skew_omega = skew(omega)
+    if theta < 1e-7:
+        return np.eye(3) + skew_omega
+    else:
+        R = np.eye(3)+(np.sin(theta)/theta)*skew_omega+(1-np.cos(theta))/(theta**2)*skew_omega@skew_omega
+    return R
 
 def geometric_jacobian(q):
     frames = fk_all_frames(q)

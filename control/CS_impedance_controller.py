@@ -5,13 +5,14 @@ from planning.fk import fk
 
 
 class CS_Impedance_Controller:
-    def __init__(self,Kp,Kr,Dp,Dr,Kn=None,Dn=None,q_null=None):
+    def __init__(self,Kp,Kr,Dp,Dr,Kn=None,Dn=None,q_null=None,compensation_passive = False):
         self.Kp = Kp
         self.Kr = Kr
         self.Dp = Dp
         self.Dr = Dr
         self.Kn = Kn
         self.Dn = Dn
+        self.compensation_passive = compensation_passive
 
         if q_null is not None:
             if Kn is None or Dn is None:
@@ -42,6 +43,11 @@ class CS_Impedance_Controller:
         e_v = v_des - v
         F = lambda_m @ np.concatenate([self.Kp@e_p + self.Dp@e_v[:3],self.Kr@e_r + self.Dr@e_v[3:]])
         tau = J.T@F + data.qfrc_bias[:n]
+
+
+        # implement passive joint torque compensation if enabled
+        if self.compensation_passive:
+            tau = tau - data.qfrc_passive[:n]
 
     
         # if a nullspace target configuration is provided, compute the nullspace torque

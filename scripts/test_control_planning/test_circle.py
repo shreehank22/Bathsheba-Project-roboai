@@ -7,7 +7,7 @@ import mujoco.viewer
 from planning.fk import fk
 from planning.ik import dls_ik
 
-MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
+MODEL_PATH = os.path.join(os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco_menagerie')), 'franka_emika_panda', 'scene.xml')
 
 model = mujoco.MjModel.from_xml_path(MODEL_PATH)
 data  = mujoco.MjData(model)

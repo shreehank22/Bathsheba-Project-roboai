@@ -8,7 +8,7 @@ from planning.fk import fk
 import matplotlib.pyplot as plt
 from control.JS_impedance_controller import JS_Impedance_Controller
 
-MODEL_PATH = os.path.expanduser('~/mujoco_menagerie/franka_emika_panda/scene.xml')
+MODEL_PATH = os.path.join(os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco_menagerie')), 'franka_emika_panda', 'scene.xml')
 model = mujoco.MjModel.from_xml_path(MODEL_PATH)
 data  = mujoco.MjData(model)
 SETTLE_TIME = 3.0

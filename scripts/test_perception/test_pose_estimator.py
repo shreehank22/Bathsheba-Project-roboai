@@ -9,17 +9,16 @@ from scipy.linalg import logm
 
 from perception.detector import segment_red, camera_intrinsics, pixel_to_world
 from perception.pose_estimator import estimate_cube_pose, cube_keypoints, detect_corners, project_keypoints
+from envs.pick_scene import load_pick_scene
 
 # ── Config ───────────────────────────────────────────────────────────────────
-MENAGERIE_PATH = os.environ.get('MUJOCO_MENAGERIE', os.path.expanduser('~/mujoco_menagerie'))
-MODEL_PATH = os.path.join(MENAGERIE_PATH, 'franka_emika_panda', 'scene_pick.xml')
 CAM_NAME   = 'fixed_cam'
 H, W       = 480, 640
 PROJECT_ROOT = os.environ.get('PROJECT_ROOT', os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 HALF_SIZE  = 0.025
 
 # ── Setup ────────────────────────────────────────────────────────────────────
-model = mujoco.MjModel.from_xml_path(MODEL_PATH)
+model = load_pick_scene()
 data  = mujoco.MjData(model)
 mujoco.mj_forward(model, data)
 

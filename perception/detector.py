@@ -38,8 +38,8 @@ def camera_intrinsics(model, cam_name, height, width):
     fovy=np.deg2rad(model.cam_fovy[cam_id])
     fy = (height/2)/np.tan(fovy/2)
     fx = fy
-    cx = width/2
-    cy = height/2
+    cx = (width)/2
+    cy = (height)/2
     K = np.array([[fx, 0, cx],
               [ 0,fy, cy],
               [ 0, 0,  1]])

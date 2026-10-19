@@ -71,7 +71,10 @@ Contains robot control logic, including compliant impedance controllers and gras
 Defines simulation and task environments used for robot interaction experiments.
 
 ### perception/
-Includes camera streaming, object detection, and pose estimation utilities.
+Camera utilities for the pick-and-place pipeline:
+- `detector.py`: colour segmentation of the red cube and the green place patch, camera intrinsics, and pixel-to-world conversion (with depth, or by intersecting the pixel's ray with a known plane).
+- `camera_stream.py`: live fixed- and wrist-camera windows.
+- `pose_estimator.py`: experimental cube pose estimation from detected corners.
 
 ### planning/
 Contains forward and inverse kinematics, trajectory generation, and Cartesian planning logic.
@@ -205,7 +208,21 @@ All four return to the low-millimetre range after the force is removed. A small 
 
 ### Perception
 
-The camera pipeline detects the red cube on the table in the MuJoCo scene (`detection_debug.png`). It reports the cube's pixel centroid, about (319, 292) in the 640×480 frame. Debug views of the mask, the corner points and the estimated pose are also in `assets/`.
+Perception uses two simulated cameras, both 640×480. Intrinsics come from each camera's vertical field of view.
+- **`fixed_cam`:** looks at the table from the side.
+- **`wrist_cam`:** mounted on the hand.
+
+**Fixed camera, at startup.** One frame is rendered with the arm at its home pose.
+- **Cube:** red is segmented in HSV (two hue bands, because red wraps around 0°), cleaned up with morphological open/close, and the largest contour's centroid is taken. Depth at that pixel is back-projected to world coordinates, and half the cube size is subtracted to get the centre. This estimate is coarse: at the default pose it is (0.4495, −0.1692) against a true (0.45, −0.15), about 19 mm off in y. It is used only to place the arm above the cube.
+- **Green patch:** green is segmented in HSV. Contours outside 300–700 px² are rejected, and the centroid is kept at sub-pixel precision. The patch is flat, so its pixel ray is intersected with the patch plane (z = 0.4015 m) instead of reading depth. The error is 1.56 mm in x–y at the default scene. Because the patch never moves, this is a constant bias, (−1.56, −0.01) mm in every trial.
+
+**Wrist camera, at pre-grasp.** The arm holds 0.25 m above the coarse estimate, and the wrist camera re-detects the cube.
+- **Position:** the same red segmentation plus depth back-projection, giving 1.55 mm error at the default pose. Over the 20 randomized trials the error was mean 1.22 mm, max 1.75 mm.
+- **Yaw:** taken from the minimum-area rectangle around the cube's mask and wrapped to ±45°, since a cube looks the same every 90°. Error was mean 0.12°, max 1.38°. The grasp orientation is built from this yaw.
+
+**Pose estimator (experimental, not used by the pipeline).** `test_pose_estimator.py` estimates the cube pose from detected corners. In the default scene it reports 5 correspondences, 2.15 px reprojection error, 30.48 mm translation error and 14.04° rotation error.
+
+How these perception errors feed into the final placement error is broken down in [docs/error_budget.md](docs/error_budget.md).
 
 ![Cube detection](assets/detection_debug.png)
 

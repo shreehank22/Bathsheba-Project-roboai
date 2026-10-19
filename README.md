@@ -40,7 +40,8 @@ Bathsheba-Project-roboai/
 │   ├── ik.py
 │   └── trajectory.py
 ├── scripts/
-│   ├── run.py
+│   ├── run_impedance.py
+│   ├── run_pick_place.py
 │   ├── test_control_planning/
 │   │   ├── test_cartesian_trajectory.py
 │   │   ├── test_circle.py
@@ -49,7 +50,9 @@ Bathsheba-Project-roboai/
 │   │   ├── test2_dampingandsweep.py
 │   │   ├── test3_orientationtracking.py
 │   │   ├── test4_JSImpedance.py
-│   │   └── test7_nullspace_drift.py
+│   │   ├── test7_nullspace_drift.py
+│   │   ├── test8_pose_tracking.py
+│   │   └── test9_grasp_hold.py
 │   └── test_perception/
 │       └── test_pose_estimator.py
 └── utils/
@@ -146,6 +149,33 @@ Values below are read off the plots in [assets/](assets/) and are approximate, e
 ![Null-space drift, without posture control](assets/test7_nullspace_drift.png)
 
 ![Null-space drift, with posture control](assets/test7_nullspace_drift_after.png)
+
+### Grasp-hold stability
+
+**Cube slipping out of the grasp** (`test9_grasp_hold.py`): the arm picks the cube with CS impedance control, lifts it 0.20 m and holds it for 30 s. The script logs the cube's height relative to the end effector, which shows creep, and the cube's tilt from vertical, which shows rotation about the grasp axis. Each row changes only the contact settings.
+
+| Variant | noslip | Friction cone | Cube condim / friction | Creep, first 10 s | Tilt: start → 10 s (→ 30 s) | Outcome |
+|---|---|---|---|---|---|---|
+| baseline | 0 | pyramidal | 3 / 1 0.005 0.0001 | 8.91 mm | 0.75° → 2.67° | fell after 22.4 s |
+| noslip4 | 4 | pyramidal | 3 / 1 0.005 0.0001 | 0.17 mm | 0.56° → 1.40° (→ 2.84°) | held, still tilting |
+| torsion | 0 | pyramidal | 4 / 1 0.02 0.0001 | 13.20 mm | 0.52° → 1.03° | fell after 14.6 s |
+| noslip4 + torsion | 4 | pyramidal | 4 / 1 0.02 0.0001 | 13.20 mm | 0.47° → 0.47° | fell after 14.0 s |
+| noslip4 + torsion 0.005 | 4 | pyramidal | 4 / 1 0.005 0.0001 | 13.22 mm | 0.46° → 0.47° | fell after 14.0 s |
+| noslip10 (overlaps noslip4) | 10 | pyramidal | 3 / 1 0.005 0.0001 | 0.17 mm | 0.56° → 1.41° (→ 2.84°) | held, still tilting |
+| **noslip4 + torsion + elliptic (final)** | 4 | elliptic | 4 / 1 0.02 0.0001 | **0.02 mm** | **0.47° → 0.49° (→ 0.54°)** | **held** |
+
+- The slip has two causes: contact creep and rotation about the grasp axis.
+- noslip removes most of the creep but not the slow rotation. Going from 4 to 10 iterations changes nothing: the two runs match to within 0.001 mm and 0.006°, so in the plot noslip10 is dashed over noslip4.
+- Torsional friction (`condim="4"`) stops the rotation. With MuJoCo's default pyramidal friction cone it also makes the cube slide faster, even with noslip on, so the cube falls sooner than in the baseline.
+- With the elliptic cone, noslip and torsional friction together hold the cube with essentially no creep or tilt.
+- The final row is what the scene now uses. The cube's `condim` and `friction` are set in `assets/scene_pick.xml`. `noslip_iterations` and `cone` are set in `envs/pick_scene.py`, because `MjSpec.attach()` drops `<option>` from the attached task XML.
+- `run_pick_place.py` (position servo) still completes the task with the new settings; its place error moved from 1.02 mm to 1.53 mm.
+
+![Grasp hold](assets/test9_grasp_hold.png)
+
+### Pick-and-place error budget
+
+Over 20 randomized cube start poses (x, y and yaw up to ±45°), the impedance pick-and-place pipeline (`run_impedance.py`) succeeded in all 20 trials. Mean place error was 1.08 mm (max 2.30 mm) and grew with the cube's yaw. [docs/error_budget.md](docs/error_budget.md) breaks the error into five measured terms (patch-detection bias, end-effector tracking, in-hand offset, carry drift, release shift) and covers the self-centering and fingertip-pad findings and the open questions.
 
 ### Joint-space (JS) impedance control
 

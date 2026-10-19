@@ -1,5 +1,6 @@
 import os
 import cv2
+import threading
 
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -7,6 +8,7 @@ import numpy as np
 import mujoco
 import mujoco.viewer
 from perception.detector import segment_red, segment_green, camera_intrinsics, pixel_to_world, pixel_to_plane
+from perception.camera_stream import push_frames, start_stream, stop_stream
 from planning.fk import fk
 from envs.pick_scene import load_pick_scene
 from control.CS_impedance_controller import CS_Impedance_Controller
@@ -21,6 +23,9 @@ PREGRASP_HEIGHT = 0.25   # height above the cube; 0.25 is where the wrist camera
 HOLD_TIME = 0.5
 FINGER_LENGTH = 0.11
 CUBE_REST_Z = 0.425      # cube centre height resting on the table
+ENABLE_FIXED_CAM = True  # live fixed-camera window
+ENABLE_WRIST_CAM = True  # live wrist-camera window
+STREAM_EVERY = 10        # push camera frames every N sim steps
 
 
 # default configs
@@ -153,7 +158,11 @@ def make_R_des(yaw):
     return R_des
 
 
-
+# live camera windows; renderer_rgb is free after the initial detection, so it renders the fixed view
+stream_on = ENABLE_FIXED_CAM or ENABLE_WRIST_CAM
+stop_event = threading.Event()
+if stream_on:
+    start_stream(stop_event)
 
 with mujoco.viewer.launch_passive(model, data) as viewer:
     viewer.cam.distance = 2.0
@@ -307,5 +316,19 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         if step % SIM_HZ == 0:
             print(f"t = {t:5.2f} s | EE pos = {np.round(p_ref-e_p, 4)} | ||e_p|| = {np.linalg.norm(e_p)*1000:.3f} mm")
         viewer.sync()
+
+        if stream_on and step % STREAM_EVERY == 0:
+            fixed_img, wrist_img = None, None
+            if ENABLE_FIXED_CAM:
+                renderer_rgb.update_scene(data, camera=CAM_NAME)
+                fixed_img = renderer_rgb.render()
+            if ENABLE_WRIST_CAM:
+                renderer_wrist.update_scene(data, camera='wrist_cam')
+                wrist_img = renderer_wrist.render()
+            push_frames(fixed_img, wrist_img)
+
         step += 1
         t += SIM_DT
+
+if stream_on:
+    stop_stream(stop_event)

@@ -10,7 +10,8 @@
 
         <body name="cube" pos="0.45 -0.15 0.425">
             <joint type="free"/>
-            <geom type="box" size="0.025 0.025 0.025" rgba="1 0 0 1"/>
+            <!-- condim 4 + torsional friction (sliding, torsional, rolling) stop the cube rotating about the grasp axis -->
+            <geom type="box" size="0.025 0.025 0.025" rgba="1 0 0 1" condim="4" friction="1 0.02 0.0001"/>
         </body>
 
         <!-- visual-only place target: 80 mm square (1.6x cube), 1 mm thick, top at table + 1.5 mm -->

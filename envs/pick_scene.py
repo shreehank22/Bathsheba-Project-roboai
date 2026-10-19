@@ -12,4 +12,10 @@ def load_pick_scene():
     spec = mujoco.MjSpec.from_file(PANDA_SCENE_PATH)
     task = mujoco.MjSpec.from_file(TASK_SCENE_PATH)
     spec.attach(task, frame=spec.worldbody.add_frame(), prefix='')
+
+    # grasp stability: set here because attach() drops <option> from the task XML.
+    # noslip removes contact creep; the elliptic cone is needed for the cube's torsional friction
+    # to work (with the default pyramidal cone, condim 4 makes the cube slip faster)
+    spec.option.noslip_iterations = 4
+    spec.option.cone = mujoco.mjtCone.mjCONE_ELLIPTIC
     return spec.compile()

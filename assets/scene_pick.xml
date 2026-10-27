@@ -22,7 +22,13 @@
                 pos="0.5 -0.8 1.2"
                 xyaxes="1 0 0 0 0.6 0.8"
                 fovy="60"/>
-                
+
+        <!-- fixed_cam mirrored across the table centre (y=0): opposite end, looking back toward -y -->
+        <camera name="fixed_cam_opposite"
+                pos="0.5 0.8 1.2"
+                xyaxes="-1 0 0 0 -0.6 0.8"
+                fovy="60"/>
+
 
     </worldbody>
 

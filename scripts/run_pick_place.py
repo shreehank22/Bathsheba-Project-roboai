@@ -14,6 +14,7 @@ from planning.fk import fk
 from envs.pick_scene import load_pick_scene
 
 CAM_NAME = 'fixed_cam'
+CAM_NAME2 = 'fixed_cam_opposite'
 H,W = 480, 640
 CUBE_HALF_SIZE = 0.05/2
 PREGRASP_OFFSET = 0.2
@@ -21,6 +22,7 @@ FINGER_LENGTH = 0.11
 OBSERVE_HEIGHT = 0.25
 HOLD_TIME = 0.5
 ENABLE_FIXED_CAM = True
+ENABLE_OPPOSITE_CAM = True
 PATCH_Z = 0.4015
 PLACE_CLEARANCE = 0.003
 PLACE_ABOVE_Z = 0.63  # top-down IK at the patch fails above ~0.66 (lift height 0.735 is out of reach)
@@ -131,6 +133,7 @@ traj = JointTrajectory(q_start, q_pregrasp, 3.0)
 
 renderer_fixed = mujoco.Renderer(model, height=H, width=W)
 renderer_wrist = mujoco.Renderer(model, height=H, width=W)
+renderer_opposite = mujoco.Renderer(model, height=H, width=W)
 renderer_depth_wrist = mujoco.Renderer(model, height=H, width=W)
 renderer_depth_wrist.enable_depth_rendering()
  
@@ -321,6 +324,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             stop_stream(stop_event)
             renderer_fixed.close()
             renderer_wrist.close()
+            renderer_opposite.close()
             renderer_depth_wrist.close()
             renderer_rgb.close()
             renderer_depth.close()
@@ -336,9 +340,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 fixed_img = renderer_fixed.render()
             else:
                 fixed_img = None
+            if ENABLE_OPPOSITE_CAM:
+                renderer_opposite.update_scene(data, camera=CAM_NAME2)
+                opp_img = renderer_opposite.render()
+            else:
+                opp_img = None
             renderer_wrist.update_scene(data, camera='wrist_cam')
             wrist_img = renderer_wrist.render()
-            push_frames(fixed_img, wrist_img)
+            push_frames(fixed_img, wrist_img, opp_img)
  
         if step % SIM_HZ == 0:
             q_curr = data.qpos[:N_ARM]

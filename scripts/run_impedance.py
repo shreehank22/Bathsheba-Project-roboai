@@ -274,6 +274,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             print(f"[{t:5.2f}s] above the patch, descending to place")
 
         elif phase == 'descend_place' and traj is None:
+
             # place-down target: cube bottom just clears the patch
             p_place_down = np.array([p_patch[0], p_patch[1], PATCH_Z + CUBE_HALF_SIZE + FINGER_LENGTH + PLACE_CLEARANCE])
             traj,p_end,R_end,t_phase = start_move(p_end,R_end,p_place_down,R_grasp,2.0,t)
@@ -290,6 +291,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         elif phase == 'release' and t - t_phase >= 1.0:
             # fingers open and cube settled: back up to the place-above pose
+            
             traj,p_end,R_end,t_phase = start_move(p_end,R_end,p_place_above,R_grasp,2.0,t)
             phase = 'retreat'
             print(f"[{t:5.2f}s] retreating to {np.round(p_place_above, 3)}")

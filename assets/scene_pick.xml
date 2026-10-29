@@ -8,14 +8,14 @@
             <geom type="box" size="0.3 0.3 0.2" rgba="0.8 0.6 0.4 1"/>
         </body>
 
-        <body name="cube" pos="0.45 -0.15 0.425">
+        <body name="cube" pos="0.45 -0.15 0.425" euler="0 0 0">
             <joint type="free"/>
             <!-- condim 4 + torsional friction (sliding, torsional, rolling) stop the cube rotating about the grasp axis -->
             <geom type="box" size="0.025 0.025 0.025" rgba="1 0 0 1" condim="4" friction="1 0.02 0.0001"/>
         </body>
 
         <!-- visual-only place target: 80 mm square (1.6x cube), 1 mm thick, top at table + 1.5 mm -->
-        <geom name="place_patch" type="box" pos="0.45 0.15 0.401" size="0.04 0.04 0.0005"
+        <geom name="place_patch" type="box" pos="0.55 0.15 0.401" size="0.04 0.04 0.0005"
               rgba="0 0.8 0 1" contype="0" conaffinity="0"/>
 
         <camera name="fixed_cam"

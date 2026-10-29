@@ -10,7 +10,7 @@ import mujoco.viewer
 from perception.detector import segment_red, segment_green, camera_intrinsics, pixel_to_world, pixel_to_plane
 from perception.camera_stream import push_frames, start_stream, stop_stream
 from planning.fk import fk
-from envs.pick_scene import load_pick_scene
+from envs.pick_scene import load_pick_scene, Q_HOME
 from control.CS_impedance_controller import CS_Impedance_Controller
 from planning.PoseTrajectory import PoseTrajectory
 from planning.ik import dls_ik
@@ -31,14 +31,16 @@ STREAM_EVERY = 10        # push camera frames every N sim steps
 
 
 # default configs
-q_home = np.array([0, -np.pi/4, 0, -3*np.pi/4, 0, np.pi/2, np.pi/4], dtype=np.float64)
 R_des_default = np.array([[1,0,0],[0,-1,0],[0,0,-1]], dtype=np.float64)
 
 model = load_pick_scene()
 N_ARM = 7
+
 data = mujoco.MjData(model)
-data.qpos[:N_ARM] = q_home
+data.qpos[:N_ARM] = Q_HOME # shared start pose, same as run_pick_place (see envs/pick_scene.py)
 mujoco.mj_forward(model, data)
+q_start = data.qpos[:N_ARM].copy()
+
 SIM_HZ = int(1/model.opt.timestep)
 SIM_DT = model.opt.timestep
 GRIPPER = 255.0
@@ -63,7 +65,7 @@ print(f"Initial detection: Detected={detected}, Centroid={centroid}")
 
 if not detected:
     print("No object detected in the initial frame. Exiting.");exit(1)
-    
+
 u,v = centroid
 depth = depth_image[v,u]
 
@@ -99,7 +101,7 @@ Dp = np.diag([2*np.sqrt(1000.0)]*3)
 Dr = np.diag([2*np.sqrt(100.0)]*3)
 Kn = np.diag([20.0]*N_ARM)
 Dn = np.diag([2*np.sqrt(20.0)]*N_ARM)
-q_null = q_home # setting the nullspace target configuration to the home position
+q_null = q_start # setting the nullspace target configuration to the start-up config
 
 
 CS_CONTROLLER = CS_Impedance_Controller(Kp, Kr, Dp, Dr, Kn, Dn, q_null=q_null, compensation_passive=True)
@@ -136,9 +138,9 @@ cube_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'cube')
 cube_qpos_adr = model.jnt_qposadr[model.body_jntadr[cube_body_id]]
 
 # defining p_hold and R_hold
-T_home = fk(q_home)
-p_hold = T_home[:3,3]
-R_hold = T_home[:3,:3]
+T_start = fk(q_start)
+p_hold = T_start[:3,3]
+R_hold = T_start[:3,:3]
 
 
 # Initializing the loop for the impedance control with nullspace control and passive joint torque compensation
@@ -179,7 +181,7 @@ def make_R_des(yaw):
 
 
 # live camera windows; renderer_rgb is free after the initial detection, so it renders the fixed view
-stream_on = ENABLE_FIXED_CAM or ENABLE_WRIST_CAM
+stream_on = ENABLE_FIXED_CAM or ENABLE_WRIST_CAM or ENABLE_OPPOSITE_CAM
 stop_event = threading.Event()
 if stream_on:
     start_stream(stop_event)

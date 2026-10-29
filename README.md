@@ -230,5 +230,6 @@ How these perception errors feed into the final placement error is broken down i
 
 - Initial validation was performed on a Franka Emika Panda 7-DOF robotic arm.
 - The repository is actively evolving, especially around perception and vision stack integration.
+- **Start pose:** both run scripts start the arm at `Q_HOME` (defined once in `envs/pick_scene.py`). Don't start from MuJoCo's default `qpos0` (all joints at 0). There the Panda stands straight up and fully extended, which is a singular configuration, and joint 4 sits just outside its limit. The joint-space pipeline (`run_pick_place.py`) handles that fine, but the Cartesian impedance pipeline (`run_impedance.py`) can't push the end-effector along the locked arm. In testing, it lagged the first trajectory by about 100 mm for the first second before catching up (normal tracking error is under 1 mm). If you change the start pose, also build the controller's initial hold target from the pose the arm is actually in (`fk(q_start)`). Otherwise the first-step error turns into a large torque spike and the arm shakes violently.
 - Contributions are welcome.
 

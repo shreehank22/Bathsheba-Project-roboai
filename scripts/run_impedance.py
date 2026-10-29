@@ -16,6 +16,7 @@ from planning.PoseTrajectory import PoseTrajectory
 from planning.ik import dls_ik
 
 CAM_NAME = 'fixed_cam'
+CAM_NAME2 = 'fixed_cam_opposite'
 H,W = 480, 640
 CUBE_HALF_SIZE = 0.05/2
 PATCH_Z = 0.4015
@@ -25,6 +26,7 @@ FINGER_LENGTH = 0.11
 CUBE_REST_Z = 0.425      # cube centre height resting on the table
 ENABLE_FIXED_CAM = True  # live fixed-camera window
 ENABLE_WRIST_CAM = True  # live wrist-camera window
+ENABLE_OPPOSITE_CAM = True  # live opposite-camera window
 STREAM_EVERY = 10        # push camera frames every N sim steps
 
 
@@ -58,8 +60,10 @@ K = camera_intrinsics(model,CAM_NAME,height=H,width=W)
 # detection of the cube in the initial frame
 mask,centroid,detected = segment_red(rgb_image)
 print(f"Initial detection: Detected={detected}, Centroid={centroid}")
+
 if not detected:
     print("No object detected in the initial frame. Exiting.");exit(1)
+    
 u,v = centroid
 depth = depth_image[v,u]
 
@@ -69,18 +73,22 @@ print(f"Initial cube position: {p_cube}")
 
 # detection of the green patch in the initial frame
 mask_green,centroid_green,detected_green = segment_green(rgb_image)
+
 if not detected_green:
     print("No green patch detected in the initial frame. Exiting.");exit(1)
+
 print(f"Green patch detection: Detected={detected_green}, Centroid={centroid_green}")
 
 p_patch = pixel_to_plane(centroid_green[0], centroid_green[1], K, model, data, CAM_NAME, PATCH_Z)
 if p_patch is None:
     print("Failed to project green patch to the plane. Exiting.");exit(1)
+
 print(f"Green patch position: {p_patch}")
 
 # ground-truth check against the place_patch geom (valid since mj_forward has run)
 patch_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, 'place_patch')
 p_patch_true = data.geom_xpos[patch_id]
+
 print(f"Green patch true position: {p_patch_true}")
 print(f"Green patch x-y error: {np.linalg.norm(p_patch[:2] - p_patch_true[:2])*1000:.2f} mm")
 
@@ -110,6 +118,18 @@ renderer_wrist = mujoco.Renderer(model, height=H, width=W)
 renderer_depth_wrist = mujoco.Renderer(model, height=H, width=W)
 renderer_depth_wrist.enable_depth_rendering()
 K_wrist = camera_intrinsics(model, 'wrist_cam', H, W)
+
+# opposite camera renderers and intrinsics
+if ENABLE_OPPOSITE_CAM:
+    renderer_opp = mujoco.Renderer(model, height=H, width=W)
+    renderer_depth_opp = mujoco.Renderer(model, height=H, width=W)
+    renderer_depth_opp.enable_depth_rendering()
+    K_opp = camera_intrinsics(model, CAM_NAME2, H, W)
+else:
+    renderer_opp = None
+    renderer_depth_opp = None
+    K_opp = None
+
 
 # cube freejoint qpos address, for the ground-truth error
 cube_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'cube')
@@ -291,7 +311,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         elif phase == 'release' and t - t_phase >= 1.0:
             # fingers open and cube settled: back up to the place-above pose
-            
+
             traj,p_end,R_end,t_phase = start_move(p_end,R_end,p_place_above,R_grasp,2.0,t)
             phase = 'retreat'
             print(f"[{t:5.2f}s] retreating to {np.round(p_place_above, 3)}")
@@ -320,14 +340,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         viewer.sync()
 
         if stream_on and step % STREAM_EVERY == 0:
-            fixed_img, wrist_img = None, None
+            fixed_img, wrist_img, opp_img = None, None, None
             if ENABLE_FIXED_CAM:
                 renderer_rgb.update_scene(data, camera=CAM_NAME)
                 fixed_img = renderer_rgb.render()
             if ENABLE_WRIST_CAM:
                 renderer_wrist.update_scene(data, camera='wrist_cam')
                 wrist_img = renderer_wrist.render()
-            push_frames(fixed_img, wrist_img)
+            if ENABLE_OPPOSITE_CAM:
+                renderer_opp.update_scene(data, camera=CAM_NAME2)
+                opp_img = renderer_opp.render()
+            push_frames(fixed_img, wrist_img, opp_img)
 
         step += 1
         t += SIM_DT

@@ -11,7 +11,7 @@ from perception.camera_stream import push_frames, start_stream, stop_stream
 from planning.trajectory import JointTrajectory
 from planning.ik import dls_ik
 from planning.fk import fk
-from envs.pick_scene import load_pick_scene
+from envs.pick_scene import load_pick_scene, Q_HOME
 
 CAM_NAME = 'fixed_cam'
 CAM_NAME2 = 'fixed_cam_opposite'
@@ -28,7 +28,6 @@ PLACE_CLEARANCE = 0.003
 PLACE_ABOVE_Z = 0.63  # top-down IK at the patch fails above ~0.66 (lift height 0.735 is out of reach)
 
 R_des_default = np.array([[1,0,0],[0,-1,0],[0,0,-1]], dtype=np.float64)
-q_home = np.array([0, -np.pi/4, 0, -3*np.pi/4, 0, np.pi/2, np.pi/4], dtype=np.float64)
 
 def estimate_yaw(mask):
     contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -48,9 +47,10 @@ def make_R_des(yaw):
     return R_des
 
 model = load_pick_scene()
-data = mujoco.MjData(model)  
-mujoco.mj_forward(model, data)
 N_ARM = 7
+data = mujoco.MjData(model)
+data.qpos[:N_ARM] = Q_HOME # shared start pose, same as run_impedance (see envs/pick_scene.py)
+mujoco.mj_forward(model, data)
 SIM_HZ = int(1/model.opt.timestep)
 GRIPPER = 255.0
 
@@ -92,8 +92,6 @@ print(f"Green patch true position: {p_green_true}")
 print(f"Green patch x-y error: {np.linalg.norm(p_green[:2] - p_green_true[:2])*1000:.2f} mm")
 
 
-
-
 p_cube = pixel_to_world(u,v,depth,K,model,data,CAM_NAME)
 p_cube[2] -= CUBE_HALF_SIZE
 print(f"Initial cube position: {p_cube}")
@@ -102,7 +100,7 @@ print(f"Initial cube position: {p_cube}")
 # Inverse Kinematics planning 
 pregrasp_pos = p_cube.copy()
 pregrasp_pos[2] += PREGRASP_OFFSET
-result = dls_ik(q_home, pregrasp_pos, R_des_default)
+result = dls_ik(Q_HOME, pregrasp_pos, R_des_default)
 if not result['converged']:
     print("IK failed to find a solution. Exiting.");exit()
 q_pregrasp = result['q']
